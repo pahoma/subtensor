@@ -19,6 +19,7 @@ use codec::{Decode, Encode};
 use frame_support::sp_runtime::transaction_validity::InvalidTransaction;
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{DispatchInfoOf, Dispatchable, PostDispatchInfoOf, SignedExtension},
     transaction_validity::{TransactionValidity, TransactionValidityError},
@@ -35,7 +36,7 @@ mod benchmarks;
 //	==== Pallet Imports =====
 // =========================
 mod block_step;
-mod epoch;
+pub mod epoch;
 mod errors;
 mod events;
 mod math;
@@ -55,6 +56,14 @@ pub mod subnet_info;
 // apparently this is stabilized since rust 1.36
 extern crate alloc;
 pub mod migration;
+
+pub use substrate_fixed::types::{I32F32};
+
+#[derive(Serialize, Clone, Deserialize, Decode)]
+pub enum EpochResult<T: Config> {
+    Emissions(Vec<(T::AccountId, u64, u64)>),
+    Incentives(Vec<I32F32>),
+}
 
 #[deny(missing_docs)]
 #[import_section(errors::errors)]

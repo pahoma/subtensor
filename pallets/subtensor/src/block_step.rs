@@ -4,6 +4,7 @@ use frame_support::storage::IterableStorageMap;
 use substrate_fixed::types::I110F18;
 use substrate_fixed::types::I64F64;
 use substrate_fixed::types::I96F32;
+use crate::epoch::EpochResult;
 
 impl<T: Config> Pallet<T> {
     /// Executes the necessary operations for each block.
@@ -170,7 +171,11 @@ impl<T: Config> Pallet<T> {
 
             // --- 8. Run the epoch mechanism and return emission tuples for hotkeys in the network.
             let emission_tuples_this_block: Vec<(T::AccountId, u64, u64)> =
-                Self::epoch(netuid, emission_to_drain);
+                // Self::epoch(netuid, emission_to_drain);
+                match Self::epoch(netuid, Some(false)) {
+                    EpochResult::Emissions(emissions) => { emissions }
+                    EpochResult::Incentives(_) => { panic!("Result is not an emissions tuple") }
+                };
             log::debug!(
                 "netuid_i: {:?} emission_to_drain: {:?} ",
                 netuid,

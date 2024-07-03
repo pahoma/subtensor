@@ -1,10 +1,14 @@
 use super::*;
 use crate::math::*;
 use frame_support::IterableStorageDoubleMap;
+use frame_support::traits::Get;
 use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
+pub use crate::EpochResult;
+
 
 impl<T: Config> Pallet<T> {
+
     /// Calculates reward consensus and returns the emissions for uids/hotkeys in a given `netuid`.
     /// (Dense version used only for testing purposes.)
     #[allow(clippy::indexing_slicing)]
@@ -352,7 +356,10 @@ impl<T: Config> Pallet<T> {
     ///     - Print debugging outputs.
     ///
     #[allow(clippy::indexing_slicing)]
-    pub fn epoch(netuid: u16, rao_emission: u64) -> Vec<(T::AccountId, u64, u64)> {
+    pub fn epoch(netuid: u16, incentive: Option<bool>) -> EpochResult<T> {
+        let incentive_in_res = incentive.unwrap_or(false);
+        let rao_emission: u64 = T::InitialEmissionValue::get() as u64;
+
         // Get subnetwork size.
         let n: u16 = Self::get_subnetwork_n(netuid);
         log::trace!("n: {:?}", n);
@@ -687,17 +694,23 @@ impl<T: Config> Pallet<T> {
                 }
             });
 
-        // Emission tuples ( hotkeys, server_emission, validator_emission )
-        hotkeys
-            .into_iter()
-            .map(|(uid_i, hotkey)| {
-                (
-                    hotkey,
-                    server_emission[uid_i as usize],
-                    validator_emission[uid_i as usize],
-                )
-            })
-            .collect()
+        if incentive_in_res {
+            EpochResult::Incentives(incentive)
+        } else {
+            // Emission tuples ( hotkeys, server_emission, validator_emission )
+            let emission_tuples: Vec<(T::AccountId, u64, u64)> = hotkeys
+                .into_iter()
+                .map(|(uid_i, hotkey)| {
+                    (
+                        hotkey,
+                        server_emission[uid_i as usize],
+                        validator_emission[uid_i as usize],
+                    )
+                })
+                .collect();
+
+            EpochResult::Emissions(emission_tuples)
+        }
     }
 
     pub fn get_float_rho(netuid: u16) -> I32F32 {
